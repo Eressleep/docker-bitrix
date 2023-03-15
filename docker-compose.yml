@@ -24,10 +24,8 @@ services:
             context: ./bin/${PHP_VERSION}
         links:
             - mysql
-            - memcached
         depends_on:
             - mysql
-            - memcached
         volumes:
             - ./www/bitrix:/home/www/bitrix
 
@@ -56,7 +54,7 @@ volumes:
     chisto-site-mysql:
         driver: local
 networks:
-    test:
+    chisto:
         driver: bridge
         driver_opts:
             com.docker.network.driver.mtu: 1450
