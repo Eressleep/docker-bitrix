@@ -56,7 +56,7 @@ volumes:
     chisto-site-mysql:
         driver: local
 networks:
-    chisto:
+    test:
         driver: bridge
         driver_opts:
             com.docker.network.driver.mtu: 1450
