@@ -10,9 +10,8 @@ services:
         depends_on:
             - php
         volumes:
-            - /var/www/bitrix:/var/www/bitrix
-            - /var/log/container-nginx:/var/log/nginx
-            - /etc/localtime:/etc/localtime:ro
+            - ./www/bitrix:/home/www/bitrix
+            - ./log/container-nginx:/home/log/nginx
         ports:
             - ${INTERFACE}:${HOST_MACHINE_UNSECURE_HOST_PORT}:${HOST_MACHINE_UNSECURE_HOST_PORT_OPEN}
             - ${INTERFACE}:${HOST_MACHINE_SECURE_HOST_PORT}:${HOST_MACHINE_SECURE_HOST_PORT_OPEN}
@@ -30,8 +29,8 @@ services:
             - mysql
             - memcached
         volumes:
-            - /var/www/bitrix:/var/www/bitrix
-            - /etc/localtime:/etc/localtime:ro
+            - ./www/bitrix:/home/www/bitrix
+
         networks:
             - ${COMPOSE_PROJECT_NAME}
         restart: always
@@ -40,8 +39,7 @@ services:
         build:
             context: ./bin/${DB_SERVER_TYPE}
         volumes:
-            - chisto-site-mysql:/var/lib/mysql
-            - /etc/localtime:/etc/localtime:ro
+            - chisto-site-mysql:/home/lib/mysql
         environment:
             MYSQL_DATABASE: ${MYSQL_DATABASE}
             MYSQL_USER: ${MYSQL_USER}
@@ -49,21 +47,6 @@ services:
             MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
         ports:
             - "${INTERFACE}:${HOST_MACHINE_MYSQL_PORT}:${HOST_MACHINE_MYSQL_PORT_OPEN}"
-        networks:
-            - ${COMPOSE_PROJECT_NAME}
-        restart: always
-    memcached:
-        container_name: ${COMPOSE_PROJECT_NAME}-${CACHE_SERVER_TYPE}
-        build:
-            context: ./bin/${CACHE_SERVER_TYPE}
-        depends_on:
-            -   mysql
-        entrypoint:
-            - memcached
-            - --memory-limit=2048m
-            - --max-item-size=128m
-        volumes:
-            - /etc/localtime:/etc/localtime:ro
         networks:
             - ${COMPOSE_PROJECT_NAME}
         restart: always
