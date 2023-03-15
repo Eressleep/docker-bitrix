@@ -56,6 +56,8 @@ services:
         container_name: ${COMPOSE_PROJECT_NAME}-${CACHE_SERVER_TYPE}
         build:
             context: ./bin/${CACHE_SERVER_TYPE}
+        depends_on:
+            -   mysql
         entrypoint:
             - memcached
             - --memory-limit=2048m
@@ -66,13 +68,12 @@ services:
             - ${COMPOSE_PROJECT_NAME}
         restart: always
 
+
 volumes:
     chisto-site-mysql:
         driver: local
 networks:
     chisto:
         driver: bridge
-        ipam:
-            driver: default
-            config:
-                - subnet: 10.100.0.0/24
+        driver_opts:
+            com.docker.network.driver.mtu: 1450
