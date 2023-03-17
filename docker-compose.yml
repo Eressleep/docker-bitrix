@@ -1,79 +1,35 @@
 version: '3'
 
 services:
-    nginx:
-        container_name : ${COMPOSE_PROJECT_NAME}-${WEB_SERVER_TYPE}
-        build:
-            context: ./bin/${WEB_SERVER_TYPE}
-        links:
-            - php
-        depends_on:
-            - php
-        volumes:
-            - /var/www/bitrix:/var/www/bitrix
-            - /var/log/container-nginx:/var/log/nginx
-            - /etc/localtime:/etc/localtime:ro
-        ports:
-            - ${INTERFACE}:${HOST_MACHINE_UNSECURE_HOST_PORT}:${HOST_MACHINE_UNSECURE_HOST_PORT_OPEN}
-            - ${INTERFACE}:${HOST_MACHINE_SECURE_HOST_PORT}:${HOST_MACHINE_SECURE_HOST_PORT_OPEN}
-        networks:
-            - ${COMPOSE_PROJECT_NAME}
-        restart: always
-    php:
-        container_name: ${COMPOSE_PROJECT_NAME}-${PHP_VERSION}
-        build:
-            context: ./bin/${PHP_VERSION}
-        links:
-            - mysql
-            - memcached
-        depends_on:
-            - mysql
-            - memcached
-        volumes:
-            - /var/www/bitrix:/var/www/bitrix
-            - /etc/localtime:/etc/localtime:ro
-        networks:
-            - ${COMPOSE_PROJECT_NAME}
-        restart: always
-    mysql:
-        container_name:  ${COMPOSE_PROJECT_NAME}-${DB_SERVER_TYPE}
-        build:
-            context: ./bin/${DB_SERVER_TYPE}
-        volumes:
-            - chisto-site-mysql:/var/lib/mysql
-            - /etc/localtime:/etc/localtime:ro
-        environment:
-            MYSQL_DATABASE: ${MYSQL_DATABASE}
-            MYSQL_USER: ${MYSQL_USER}
-            MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-            MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-        ports:
-            - "${INTERFACE}:${HOST_MACHINE_MYSQL_PORT}:${HOST_MACHINE_MYSQL_PORT_OPEN}"
-        networks:
-            - ${COMPOSE_PROJECT_NAME}
-        restart: always
-    memcached:
-        container_name: ${COMPOSE_PROJECT_NAME}-${CACHE_SERVER_TYPE}
-        build:
-            context: ./bin/${CACHE_SERVER_TYPE}
-        depends_on:
-            -   mysql
-        entrypoint:
-            - memcached
-            - --memory-limit=2048m
-            - --max-item-size=128m
-        volumes:
-            - /etc/localtime:/etc/localtime:ro
-        networks:
-            - ${COMPOSE_PROJECT_NAME}
-        restart: always
+  php:
+    container_name: ${COMPOSE_PROJECT_NAME}-${PHP_VERSION}
+    build:
+      context: ./bin/${PHP_VERSION}
+      dockerfile: ./Dockerfile
+    links:
+      - database
+    depends_on:
+      - database
+    volumes:
+      - ./www/bitrix:/home/bitrix/www # Вынести в env
+      - ${LOG_PATH_PHP_LOCAL}:${LOG_PATH_PHP_CONTAINER}
+    restart: unless-stopped
+  database:
+    container_name: ${COMPOSE_PROJECT_NAME}-${DB_SERVER_TYPE}
+    build:
+      context: ./bin/${DB_SERVER_TYPE}
+      dockerfile: ./Dockerfile
+    volumes:
+      - ./data/mysql:/var/lib/mysql # Вынести в env
+      - ${LOG_PATH_DATABASE_LOCAL}:${LOG_PATH_DATABASE_CONTAINER}
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: password
+    ports:
+      - ${INTERFACE}:${HOST_MACHINE_MYSQL_PORT}:${HOST_MACHINE_MYSQL_PORT_OPEN}
+    restart: unless-stopped
 
 
-volumes:
-    chisto-site-mysql:
-        driver: local
-networks:
-    chisto:
-        driver: bridge
-        driver_opts:
-            com.docker.network.driver.mtu: 1450
+
