@@ -1,11 +1,24 @@
-FROM nginx:1.23.3
+FROM nginx:1.23.3-alpine-slim
 
-COPY conf/nginx.conf /etc/nginx/
-COPY conf/default.conf /etc/nginx/conf.d/
-COPY conf/upstream.conf /etc/nginx/conf.d/
+ARG APP_ENV='prod'
 
-RUN usermod -u 1000 www-data
+ARG USER_ID='1000'
 
-CMD ["nginx"]
+ARG GROUP_ID='1000'
 
-EXPOSE 80 443
+ARG PROJECT_PREFIX='chisto'
+
+RUN apk --no-cache add shadow \
+	&& groupmod -g $USER_ID nginx \
+	&& usermod -u $USER_ID nginx
+
+COPY ["conf/nginx.conf", "/etc/nginx/"]
+COPY conf/conf.d/* /etc/nginx/conf.d/
+
+RUN sed -i "s/#PROJECT_PREFIX#/${PROJECT_PREFIX}/g" /etc/nginx/conf.d/default.conf
+
+EXPOSE 80
+
+STOPSIGNAL SIGTERM
+
+CMD ["nginx", "-g", "daemon off;"]

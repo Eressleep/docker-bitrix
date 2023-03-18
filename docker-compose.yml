@@ -1,6 +1,34 @@
 version: '3'
 
 services:
+  nginx:
+    container_name: ${COMPOSE_PROJECT_NAME}-${WEB_SERVER_TYPE}
+    build:
+      context: ./bin/${WEB_SERVER_TYPE}
+      dockerfile: ./Dockerfile
+      args:
+        PROJECT_PREFIX: ${COMPOSE_PROJECT_NAME}
+    links:
+      - database
+      - php
+    depends_on:
+      - database
+      - php
+    volumes:
+      - ./www/bitrix:/home/bitrix/www
+      - ./logs/container-nginx:/var/log/nginx
+    environment:
+      TZ: ${TIMEZONE}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    ports:
+      - ${HOST_MACHINE_UNSECURE_HOST_PORT}:${HOST_MACHINE_UNSECURE_HOST_PORT_SITE}
+    restart: unless-stopped
+    networks:
+      - bitrix
   php:
     container_name: ${COMPOSE_PROJECT_NAME}-${PHP_VERSION}
     build:
@@ -13,7 +41,14 @@ services:
     volumes:
       - ./www/bitrix:/home/bitrix/www # Вынести в env
       - ${LOG_PATH_PHP_LOCAL}:${LOG_PATH_PHP_CONTAINER}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
     restart: unless-stopped
+    networks:
+      - bitrix
   database:
     container_name: ${COMPOSE_PROJECT_NAME}-${DB_SERVER_TYPE}
     build:
@@ -24,12 +59,49 @@ services:
       - ${LOG_PATH_DATABASE_LOCAL}:${LOG_PATH_DATABASE_CONTAINER}
     environment:
       MYSQL_DATABASE: ${MYSQL_DATABASE}
-      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_USER:     ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-      MYSQL_ROOT_PASSWORD: password
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      TZ: ${TIMEZONE}
     ports:
       - ${INTERFACE}:${HOST_MACHINE_MYSQL_PORT}:${HOST_MACHINE_MYSQL_PORT_OPEN}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    restart: unless-stopped
+    networks:
+      - bitrix
+#  sphinx:
+#    container_name: ${COMPOSE_PROJECT_NAME}-${SEARCH_SERVER_TYPE}
+#    build:
+#      context: ./bin/sphinx
+#      dockerfile: ./Dockerfile
+#    links:
+#      - database
+#    depends_on:
+#      - database
+#    restart: unless-stopped
+#    networks:
+#      - bitrix
+  memcached:
+    image: memcached:latest
+    container_name: ${COMPOSE_PROJECT_NAME}-${CACHE_SERVER_TYPE}
+    restart: unless-stopped
+    networks:
+      - bitrix
+    expose:
+      - 11211
+  memcached-sessions:
+    image: memcached:latest
+    container_name: ${COMPOSE_PROJECT_NAME}-${CACHE_SERVER_TYPE_SESSION}
+    networks:
+      - bitrix
+    expose:
+      - 11211
     restart: unless-stopped
 
-
-
+networks:
+  bitrix:
+    driver: bridge
